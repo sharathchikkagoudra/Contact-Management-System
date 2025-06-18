@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mentor  Management System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>mentor Management System</h1>
+
+    <form id="contactForm">
+        <input type="text" id="first_name" placeholder="First Name" required>
+        <input type="text" id="last_name" placeholder="Last Name" required>
+        <input type="email" id="email" placeholder="Email" required>
+        <input type="text" id="phone" placeholder="Phone" required>
+        <button type="submit">Add Contact</button>
+    </form>
+
+    <h2>Search Contacts</h2>
+    <form id="searchForm">
+        <input type="text" id="search_query" placeholder="Search by Name">
+        <button type="submit">Search</button>
+    </form>
+
+    <div id="searchResults"></div>
+
+    <h2>Contacts</h2>
+    <div id="contactsList"></div>
+
+    <script>
+        const form = document.getElementById('contactForm');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                first_name: form.first_name.value,
+                last_name: form.last_name.value,
+                email: form.email.value,
+                phone: form.phone.value
+            };
+            const response = await fetch('/add_contact', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            if (response.ok) {
+                alert('Contact added successfully');
+                form.reset();
+                loadContacts();
+            }
+        });
+
+        const searchForm = document.getElementById('searchForm');
+        searchForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const query = document.getElementById('search_query').value;
+            const response = await fetch(`/search?q=${query}`);
+            const results = await response.json();
+            displayContacts(results, 'searchResults');
+        });
+
+        async function loadContacts() {
+            const response = await fetch('/contacts');
+            const contacts = await response.json();
+            displayContacts(contacts, 'contactsList');
+        }
+
+        function displayContacts(contacts, elementId) {
+            const container = document.getElementById(elementId);
+            container.innerHTML = contacts.map(c => `
+                <div>
+                    <p>${c.first_name} ${c.last_name}</p>
+                    <p>${c.email}</p>
+                    <p>${c.phone}</p>
+                    <button class="edit" onclick="editContact(${c.id})">Edit</button>
+                    <button class="delete" onclick="deleteContact(${c.id})">Delete</button>
+                </div>
+            `).join('');
+        }
+
+        async function deleteContact(id) {
+            const response = await fetch(`/contact/${id}`, {
+                method: 'DELETE'
+            });
+            if (response.ok) {
+                alert('Contact deleted successfully');
+                loadContacts();
+            }
+        }
+
+        async function editContact(id) {
+            const newFirstName = prompt("Enter new first name:");
+            const newLastName = prompt("Enter new last name:");
+            const newEmail = prompt("Enter new email:");
+            const newPhone = prompt("Enter new phone:");
+            
+            const data = {
+                first_name: newFirstName,
+                last_name: newLastName,
+                email: newEmail,
+                phone: newPhone
+            };
+            
+            const response = await fetch(`/contact/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            
+            if (response.ok) {
+                alert('Contact updated successfully');
+                loadContacts();
+            }
+        }
+
+        loadContacts();
+    </script>
+</body>
+</html>
